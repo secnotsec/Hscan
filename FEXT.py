@@ -17,9 +17,6 @@ from config import *
 import string
 
 class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
-    ''' Implements IBurpExtender for hook into burp and inherit base classes.
-     Implement IMessageEditorTabFactory to access createNewInstance.
-    '''
 
     def registerExtenderCallbacks(self, callbacks):
 
@@ -29,11 +26,8 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
         # keep a reference to our callbacks object
         self._callbacks = callbacks
 
-        # obtain an extension helpers object
-        # This method is used to obtain an IExtensionHelpers object, which can be used by the extension to perform numerous useful tasks
         self._helpers = callbacks.getHelpers()
 
-        # set our extension name
         callbacks.setExtensionName("Hscan")
 
         callbacks.registerHttpListener(self)
@@ -63,7 +57,7 @@ oQIDAQAB
         if _pos_ != None:
             __msg__ = _resp_headers[_pos_]
         else:
-            __msg__ = {header.split(" ")[0].replace(":",""):header.split(":")[1] for header in _resp_headers if header.split(" ")[0].replace(":","") in resp_fields}
+            __msg__ = {header.split(" ")[0].replace(":",""):header.split(" ")[1] for header in _resp_headers if header.split(" ")[0].replace(":","") in resp_fields}
 
         return __msg__
 
@@ -79,10 +73,10 @@ oQIDAQAB
 
     def issue_req(self, URL, modified_headers, body):
         message = self._helpers.buildHttpMessage(modified_headers, self._helpers.stringToBytes(body))
-        response = self._callbacks.makeHttpRequest(URL.getHost(), 443, True, message)
-        response_info = self._helpers.analyzeResponse(response)
+        request = self._callbacks.makeHttpRequest(URL.getHost(), 443, True, message)
+        response_info = self._helpers.analyzeResponse(request)
         req_hdrs = response_info.getHeaders()
-        return req_hdrs
+        return [req_hdrs,modified_headers]
 
 
     def empty_hdr(self, hdrs):
@@ -111,7 +105,6 @@ oQIDAQAB
 
         Modheaders = []
         Algs = {"RS256":"HMAC256", "RS384": "HMAC384", "RS512": "HMAC512"}
-        eval_safe_list = dict([ (key, locals().get(key, eval("self."+Algs[key]))) for key in Algs])
 
         if case == "WIPE":
             self.empty_hdr(Modheaders)
@@ -123,10 +116,10 @@ oQIDAQAB
 
             _resp = self.issue_req(URL, Modheaders, body)
 
-            if self._valid_(self._handle_response_(_resp, 0, {}).split(" ")[1]):
-                self._callbacks.printOutput(self._handle_response_(_resp, 0, {}).split(" ")[1])
+            if self._valid_(self._handle_response_(_resp[0], 0, {}).split(" ")[1]):
+                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
             else:
-                self._callbacks.printOutput(self._handle_response_(_resp, 0, {}).split(" ")[1])
+                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
 
         elif case == "none":
             self.empty_hdr(Modheaders)
@@ -140,10 +133,10 @@ oQIDAQAB
 
             _resp = self.issue_req(URL, Modheaders, body)
 
-            if self._valid_(self._handle_response_(_resp, 0, {}).split(" ")[1]):
-                self._callbacks.printOutput(self._handle_response_(_resp, 0, {}).split(" ")[1])
+            if self._valid_(self._handle_response_(_resp[0], 0, {}).split(" ")[1]):
+                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
             else:
-                self._callbacks.printOutput(self._handle_response_(_resp, 0, {}).split(" ")[1])
+                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
 
 
         elif case == "TOHMAC":
@@ -157,7 +150,7 @@ oQIDAQAB
                         JWT_P = json.loads(base64.b64decode(hdr.split(" ")[2].split(".")[1]+"==="))
                         for alg in self.EncryptionAlg:
                             if JWT_H["alg"] == alg:
-                                njwt_hdr = eval("self."+self.EncryptionAlg[alg]+"({}, {}, {})".format(JWT_P, JWT_P, JWT_H["jwk"]))
+                                njwt_hdr = eval("self."+self.EncryptionAlg[alg]+"({}, {}, '{}')".format(JWT_H, JWT_P, JWT_H["jwk"]))
                                 njwt_hdr = hdr.split(" ")[0]+" "+hdr.split(" ")[1]+" "+njwt_hdr
                                 Modheaders.append(njwt_hdr)
                                 break
@@ -166,10 +159,10 @@ oQIDAQAB
 
             _resp = self.issue_req(URL, Modheaders, body)
 
-            if self._valid_(self._handle_response_(_resp, 0, {}).split(" ")[1]):
-                self._callbacks.printOutput(self._handle_response_(_resp, 0, {}).split(" ")[1])
+            if self._valid_(self._handle_response_(_resp[0], 0, {}).split(" ")[1]):
+                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
             else:
-                self._callbacks.printOutput(self._handle_response_(_resp, 0, {}).split(" ")[1])
+                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
 
 
         elif case == "KIDSQLi":
@@ -184,20 +177,21 @@ oQIDAQAB
                         for alg in self.EncryptionAlg:
                             if JWT_H["alg"] == alg:
                                 del JWT_H["alg"]
-                                njwt_hdr = self.RSA_Algorithms(JWT_P, alg, JWT_H)
+                                njwt_hdr = eval("self."+self.EncryptionAlg[alg]+"({}, {}, '{}')".format(JWT_H, JWT_P, "s3cr3t"))
                                 njwt_hdr = hdr.split(" ")[0]+" "+hdr.split(" ")[1]+" "+njwt_hdr
                                 Modheaders.append(njwt_hdr)
                                 break
 
                 else:
+
                     Modheaders.append(hdr)
 
             _resp = self.issue_req(URL, Modheaders, body)
 
-            if self._valid_(self._handle_response_(_resp, 0, {}).split(" ")[1]):
-                self._callbacks.printOutput(self._handle_response_(_resp, 0, {}).split(" ")[1])
+            if self._valid_(self._handle_response_(_resp[0], 0, {}).split(" ")[1]):
+                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
             else:
-                self._callbacks.printOutput(self._handle_response_(_resp, 0, {}).split(" ")[1])
+                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
 
         elif case == "JKU":
             self.empty_hdr(Modheaders)
@@ -211,7 +205,7 @@ oQIDAQAB
                         for alg in self.EncryptionAlg:
                             if JWT_H["alg"] == alg:
                                 del JWT_H["alg"]
-                                njwt_hdr = self.RSA_Algorithms(JWT_P, alg, JWT_H)
+                                njwt_hdr = eval("self."+self.EncryptionAlg[alg]+"({}, {}, '{}')".format(JWT_H, JWT_P, "s3cr3t"))
                                 njwt_hdr = hdr.split(" ")[0]+" "+hdr.split(" ")[1]+" "+njwt_hdr
                                 Modheaders.append(njwt_hdr)
                                 break
@@ -252,10 +246,12 @@ oQIDAQAB
 
     def CORS_miscon(self, URL, _req_headers_, payloads, body):
         _fresh_header = []
+        init_state = ""
         _pos = None
         for header_field in _req_headers_:
             if "Origin:" in header_field:
                 _pos = _req_headers_.index(header_field)
+                init_state = header_field
                 _fresh_header.append(header_field)
             else:
                 _fresh_header.append(header_field)
@@ -263,29 +259,31 @@ oQIDAQAB
         if _pos != None:
             for _payload in payloads:
 
-                if re.search("\.|(http)|(https)", _payload):
+                if re.search("(http)|(https)", _payload):
                     if _fresh_header[_pos].split(" ").__contains__("www"):
-                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" https://www."+_payload+_fresh_header[_pos].split(" ")[1].replace("https://www", "")
+                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" "+_payload+_fresh_header[_pos].split(" ")[1].replace("https://www", "")
                     else:
-                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" https://"+_payload+_fresh_header[_pos].split(" ")[1].replace("https://", "")
+                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" "+_payload+_fresh_header[_pos].split(" ")[1].replace("https://", "")
 
                     make_req = self.issue_req(URL, _fresh_header, body)
+                    _fresh_header[_pos] = init_state
                     self.parse_CORS_result(make_req)
 
                 if re.search("\.\w{2,3}$", _payload) and _payload.startswith("."):
                     _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" "+_fresh_header[_pos].split(" ")[1]+_payload
-
                     make_req = self.issue_req(URL, _fresh_header, body)
+                    _fresh_header[_pos] = init_state
                     self.parse_CORS_result(make_req)
 
                 if re.search("\.\w{2,3}$", _payload) and _payload[0] != ".":
                     Origin = _fresh_header[_pos].split(" ")[1]
                     if re.search("\.\w{3}$", Origin):
-                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" "+Origin.replace("."+Origin[len(Origin)-3:], _payload)
+                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" "+Origin.replace("."+Origin[len(Origin)-3:], _payload.replace("https://",""))
                     else:
-                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" "+Origin.replace("."+Origin[len(Origin)-2:], _payload)
+                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" "+Origin.replace("."+Origin[len(Origin)-2:], _payload.replace("https://",""))
 
                     make_req = self.issue_req(URL, _fresh_header, body)
+                    _fresh_header[_pos] = init_state
                     self.parse_CORS_result(make_req)
 
                 if _payload.endswith(".") and _payload.count(".") == 1:
@@ -295,11 +293,12 @@ oQIDAQAB
                     spl_Origin = Origin.split(".")
                     if len(spl_Origin) == 3:
                         spl_Origin[0] = _payload.replace(".","")
-                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" https://"+'.'.join(spl_Origin)
+                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" "+'.'.join(spl_Origin)
                     else:                    
-                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" https://"+_payload+'.'.join(spl_Origin)
+                        _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" "+_payload+'.'.join(spl_Origin)
 
                     make_req = self.issue_req(URL, _fresh_header, body)
+                    _fresh_header[_pos] = init_state
                     self.parse_CORS_result(make_req)
 
             compiled_payloads = [special_char+cases[4] for special_char in string.punctuation]
@@ -307,17 +306,18 @@ oQIDAQAB
             for _payload in compiled_payloads:
                 _fresh_header[_pos] = _fresh_header[_pos]+_payload
                 make_req = self.issue_req(URL, _fresh_header, body)
+                _fresh_header[_pos] = _fresh_header[_pos].replace(_payload, "")
                 self.parse_CORS_result(make_req)
 
     def parse_CORS_result(self, _resp_headers):
 
         try:
-            allow_origin = self._handle_response_(_resp_headers, None, ["Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"])["Access-Control-Allow-Origin"]
+            allow_origin = self._handle_response_(_resp_headers[0], None, ["Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"])["Access-Control-Allow-Origin"]
         except KeyError:
             allow_origin = None
 
         try:
-            allow_credentials = self._handle_response_(_resp_headers, None, ["Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"])["Access-Control-Allow-Credentials"]
+            allow_credentials = self._handle_response_(_resp_headers[0], None, ["Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"])["Access-Control-Allow-Credentials"]
         except KeyError:
             allow_credentials = None
 
@@ -327,7 +327,7 @@ oQIDAQAB
 
     def processHttpMessage(self, toolFlag, messageIsRequest, currentMessage):
 
-        if toolFlag == self._callbacks.TOOL_PROXY:
+        if toolFlag == self._callbacks.TOOL_REPEATER:
             try:
                 if messageIsRequest:
                     self.processRequest(currentMessage)
