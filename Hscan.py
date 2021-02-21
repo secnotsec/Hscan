@@ -32,21 +32,31 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
 
         callbacks.registerHttpListener(self)
 
+        self.banner = '''
+        ______  __                           
+        ___  / / /__________________ _______ 
+        __  /_/ /__  ___/  ___/  __ `/_  __ \
+        
+        _  __  / _(__  )/ /__ / /_/ /_  / / /
+        /_/ /_/  /____/ \___/ \__,_/ /_/ /_/
+                    By Anas LAABAB                 
+        '''
+
         self.checked_URL = []
         self.EncryptionAlg = {"RS256":"HMAC256", "RS384": "HMAC384", "RS512": "HMAC512"}
         self.attack_scenarios = ["WIPE", "none", "TOHMAC", "KIDSQLi", "JKU", "JWKH"]
         self.public_key = '''
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl02jsZRcv9e0U7gRrhio
-H4ZegmLNmRlu71CB/+eVBwyWuNmOPtMgp6kPqgkxXpJjWh2dSfeTa48pBSlxioSV
-VmExXtAjHr54fYQvolSMiSbyeaZIScKkOBZ8t+6xl/nXlTzI1d+su+tBlHMB3F66
-Dz7eHwd+Hu5bLKhnKS6qkrpMB5oNcLClkpXYuTU23ulEiNw4sBmQ+NUqTPkzJ6Se
-i8XVbV72/e7SGJlYSZcWRQ3QyGMV+GhwIYm0Q0Dlm9pAtOUYoQHBF7aTXv6ZEWR8
-YntjLA0X7PIpHhtHf2OyJ9UBRCdKSteDIlLAorpGgS/PL1CrlhIYfwb4AMPWW4eY
-oQIDAQAB
------END PUBLIC KEY-----
-'''
-
+        -----BEGIN PUBLIC KEY-----
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl02jsZRcv9e0U7gRrhio
+        H4ZegmLNmRlu71CB/+eVBwyWuNmOPtMgp6kPqgkxXpJjWh2dSfeTa48pBSlxioSV
+        VmExXtAjHr54fYQvolSMiSbyeaZIScKkOBZ8t+6xl/nXlTzI1d+su+tBlHMB3F66
+        Dz7eHwd+Hu5bLKhnKS6qkrpMB5oNcLClkpXYuTU23ulEiNw4sBmQ+NUqTPkzJ6Se
+        i8XVbV72/e7SGJlYSZcWRQ3QyGMV+GhwIYm0Q0Dlm9pAtOUYoQHBF7aTXv6ZEWR8
+        YntjLA0X7PIpHhtHf2OyJ9UBRCdKSteDIlLAorpGgS/PL1CrlhIYfwb4AMPWW4eY
+        oQIDAQAB
+        -----END PUBLIC KEY-----
+        '''
+        self._callbacks.printOutput(self.banner)
 
         return
 
@@ -117,7 +127,7 @@ oQIDAQAB
             _resp = self.issue_req(URL, Modheaders, body)
 
             if self._valid_(self._handle_response_(_resp[0], 0, {}).split(" ")[1]):
-                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
+                self._callbacks.printOutput("ISSUE[JWT|"+case+"], ENDPOINT["+headersx[1].split(" ")[1]+re.sub(r'\?.*','', headersx[0].split(" ")[1])+"], STATUS["+self._handle_response_(_resp[0], 0, {}).split(" ")[1]+"]")
             else:
                 self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
 
@@ -134,7 +144,7 @@ oQIDAQAB
             _resp = self.issue_req(URL, Modheaders, body)
 
             if self._valid_(self._handle_response_(_resp[0], 0, {}).split(" ")[1]):
-                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
+                self._callbacks.printOutput("ISSUE[JWT|"+case+"], ENDPOINT["+headersx[1].split(" ")[1]+re.sub(r'\?.*','', headersx[0].split(" ")[1])+"], STATUS["+self._handle_response_(_resp[0], 0, {}).split(" ")[1]+"]")
             else:
                 self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
 
@@ -160,7 +170,7 @@ oQIDAQAB
             _resp = self.issue_req(URL, Modheaders, body)
 
             if self._valid_(self._handle_response_(_resp[0], 0, {}).split(" ")[1]):
-                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
+                self._callbacks.printOutput("ISSUE[JWT|"+case+"], ENDPOINT["+headersx[1].split(" ")[1]+re.sub(r'\?.*','', headersx[0].split(" ")[1])+"], STATUS["+self._handle_response_(_resp[0], 0, {}).split(" ")[1]+"]")
             else:
                 self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
 
@@ -189,7 +199,7 @@ oQIDAQAB
             _resp = self.issue_req(URL, Modheaders, body)
 
             if self._valid_(self._handle_response_(_resp[0], 0, {}).split(" ")[1]):
-                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
+                self._callbacks.printOutput("ISSUE[JWT|"+case+"], ENDPOINT["+headersx[1].split(" ")[1]+re.sub(r'\?.*','', headersx[0].split(" ")[1])+"], STATUS["+self._handle_response_(_resp[0], 0, {}).split(" ")[1]+"]")
             else:
                 self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
 
@@ -212,7 +222,12 @@ oQIDAQAB
                 else:
                     Modheaders.append(hdr)
 
-            self.issue_req(URL, Modheaders, body)
+            _resp = self.issue_req(URL, Modheaders, body)
+
+            if self._valid_(self._handle_response_(_resp[0], 0, {}).split(" ")[1]):
+                self._callbacks.printOutput("ISSUE[JWT|"+case+"], ENDPOINT["+headersx[1].split(" ")[1]+re.sub(r'\?.*','', headersx[0].split(" ")[1])+"], STATUS["+self._handle_response_(_resp[0], 0, {}).split(" ")[1]+"]")
+            else:
+                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
 
         elif case == "JWKH":
             self.empty_hdr(Modheaders)
@@ -233,7 +248,12 @@ oQIDAQAB
                 else:
                     Modheaders.append(hdr)
 
-            self.issue_req(URL, Modheaders, body)
+            _resp = self.issue_req(URL, Modheaders, body)
+
+            if self._valid_(self._handle_response_(_resp[0], 0, {}).split(" ")[1]):
+                self._callbacks.printOutput("ISSUE[JWT|"+case+"], ENDPOINT["+headersx[1].split(" ")[1]+re.sub(r'\?.*','', headersx[0].split(" ")[1])+"], STATUS["+self._handle_response_(_resp[0], 0, {}).split(" ")[1]+"]")
+            else:
+                self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
 
     def check_JWT_Token(self, host, headers, body):
 
@@ -267,13 +287,13 @@ oQIDAQAB
 
                     make_req = self.issue_req(URL, _fresh_header, body)
                     _fresh_header[_pos] = init_state
-                    self.parse_CORS_result(make_req)
+                    self.parse_CORS_result(make_req, _req_headers_)
 
                 if re.search("\.\w{2,3}$", _payload) and _payload.startswith("."):
                     _fresh_header[_pos] = _fresh_header[_pos].split(" ")[0]+" "+_fresh_header[_pos].split(" ")[1]+_payload
                     make_req = self.issue_req(URL, _fresh_header, body)
                     _fresh_header[_pos] = init_state
-                    self.parse_CORS_result(make_req)
+                    self.parse_CORS_result(make_req, _req_headers_)
 
                 if re.search("\.\w{2,3}$", _payload) and _payload[0] != ".":
                     Origin = _fresh_header[_pos].split(" ")[1]
@@ -284,7 +304,7 @@ oQIDAQAB
 
                     make_req = self.issue_req(URL, _fresh_header, body)
                     _fresh_header[_pos] = init_state
-                    self.parse_CORS_result(make_req)
+                    self.parse_CORS_result(make_req, _req_headers_)
 
                 if _payload.endswith(".") and _payload.count(".") == 1:
                     Origin = _fresh_header[_pos].split(" ")[1]
@@ -299,7 +319,7 @@ oQIDAQAB
 
                     make_req = self.issue_req(URL, _fresh_header, body)
                     _fresh_header[_pos] = init_state
-                    self.parse_CORS_result(make_req)
+                    self.parse_CORS_result(make_req, _req_headers_)
 
             compiled_payloads = [special_char+cases[4] for special_char in string.punctuation]
 
@@ -307,9 +327,9 @@ oQIDAQAB
                 _fresh_header[_pos] = _fresh_header[_pos]+_payload
                 make_req = self.issue_req(URL, _fresh_header, body)
                 _fresh_header[_pos] = _fresh_header[_pos].replace(_payload, "")
-                self.parse_CORS_result(make_req)
+                self.parse_CORS_result(make_req, _req_headers_)
 
-    def parse_CORS_result(self, _resp_headers):
+    def parse_CORS_result(self, _resp_headers, _req_headers_):
 
         try:
             allow_origin = self._handle_response_(_resp_headers[0], None, ["Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"])["Access-Control-Allow-Origin"]
@@ -322,7 +342,7 @@ oQIDAQAB
             allow_credentials = None
 
         if allow_origin != None and allow_credentials != None:
-            self._callbacks.printOutput(allow_origin+" : it's vulnerable")
+            self._callbacks.printOutput("ISSUE[CORS], ENDPOINT["+_req_headers_[1].split(" ")[1]+re.sub(r'\?.*','', _req_headers_[0].split(" ")[1])+"], STATUS[]")
 
 
     def processHttpMessage(self, toolFlag, messageIsRequest, currentMessage):
