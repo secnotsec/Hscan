@@ -107,10 +107,6 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
     def HMAC384(self, header, payload, key):
         return jwt.encode(payload, key, algorithm='HS384', headers=header)
 
-    def RSA_Algorithms(self, payload, algo, header):
-        cmd = "python -W ignore "+os.getcwd()+"/JWTGen.py '"+json.dumps(payload).replace(" ","")+"' "+algo+" '"+json.dumps(header).replace(" ","")+"'"
-        return subprocess.Popen(cmd.split(" "),stdout=subprocess.PIPE).stdout.readlines()[0].replace("\n","")
-
     def checks(self, URL, case, headersx, body):
 
         Modheaders = []
@@ -209,7 +205,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
                 if "Authorization:" in hdr:
                     JWT_H = json.loads(base64.b64decode(hdr.split(" ")[2].split(".")[0]+"==="))
                     if JWT_H.__contains__("jku"):
-                        JWT_H["jku"] = "http://example.com/x.js"
+                        JWT_H["jku"] = Key_URL
                         del JWT_H["typ"]
                         JWT_P = json.loads(base64.b64decode(hdr.split(" ")[2].split(".")[1]+"==="))
                         for alg in self.EncryptionAlg:
