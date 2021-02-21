@@ -14,7 +14,8 @@ Is a BurpSuite extension which will help pentesters automatically detect CORS an
 1. Install pyjwt library `python3 -m pip install pyjwt`
 2. Download Jython. Go to `Extender > Options`, under Python Environment load the Jython standalone file
 3. Under the same location, Set python installed libraries's location
-4. Go to `Extender > Extensions`, then click Add and select `Hscan.py`
+4. Set up your configuration within the `config.py` file
+5. Go to `Extender > Extensions`, then click Add and select `Hscan.py`
 
 # Screenshots
 
