@@ -9,6 +9,13 @@
 
 Is a BurpSuite extension which will help pentesters automatically detect CORS and JWT misconfigurations through many test cases. This was created to avoid the hurdle of manual testing while there are in-depth areas where time should be put on. Currently, It only supports the stated before misconfigurations, but code & new checks will be pushed as soon something feasible show up on the way.
 
+# Installation
+
+1. Install pyjwt library `python3 -m pip install pyjwt`
+2. Download Jython. Go to `Extender > Options`, under Python Environment load the Jython standalone file
+3. Under the same location, Set python installed libraries's location
+4. Go to `Extender > Extensions`, then click Add and select `Hscan.py`
+
 # Screenshots
 
 ![scsdc](/screenshots/screenshot.png)
