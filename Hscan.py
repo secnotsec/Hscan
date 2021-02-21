@@ -20,10 +20,6 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
 
     def registerExtenderCallbacks(self, callbacks):
 
-        # required for debugger: https://github.com/securityMB/burp-exceptions
-        sys.stdout = callbacks.getStdout()
-
-        # keep a reference to our callbacks object
         self._callbacks = callbacks
 
         self._helpers = callbacks.getHelpers()
