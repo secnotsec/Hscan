@@ -328,7 +328,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
 
     def processHttpMessage(self, toolFlag, messageIsRequest, currentMessage):
 
-        if toolFlag == self._callbacks.TOOL_REPEATER:
+        if toolFlag == self._callbacks.TOOL_PROXY:
             try:
                 if messageIsRequest:
                     self.processRequest(currentMessage)
