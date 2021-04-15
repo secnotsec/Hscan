@@ -92,6 +92,10 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
     def HMAC384(self, header, payload, key):
         return jwt.encode(payload, key, algorithm='HS384', headers=header)
 
+    def RSA_algo(self, payload, algo, header):
+        cmd = "python -W ignore "+os.getcwd()+"/JWTGen.py '"+json.dumps(payload).replace(" ","")+"' "+algo+" '"+json.dumps(header).replace(" ","")+"'"
+        return subprocess.Popen(cmd.split(" "),stdout=subprocess.PIPE).stdout.readlines()[0].replace("\n","")
+
     def checks(self, URL, case, headersx, body):
 
         Modheaders = []
@@ -118,7 +122,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
                 if "Authorization:" in hdr:
                     njwt_hdr = json.loads(base64.b64decode(hdr.split(" ")[2].split(".")[0]+"==="))
                     njwt_hdr["alg"] = "none"
-                    Modheaders.append(hdr.split(" ")[0]+" "+hdr.split(" ")[1]+" "+base64.b64encode(json.dumps(njwt_hdr)).replace("=","")+'.'.join(hdr.split(" ")[2].split(".")[:2]))
+                    Modheaders.append(hdr.split(" ")[0]+" "+hdr.split(" ")[1]+" "+base64.b64encode(json.dumps(njwt_hdr)).replace("=","")+'.'.join(hdr.split(" ")[2].split(".")[1:2]))
                 else:
                     Modheaders.append(hdr)
 
@@ -128,7 +132,6 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
                 self._callbacks.printOutput("ISSUE[JWT|"+case+"], ENDPOINT["+headersx[1].split(" ")[1]+re.sub(r'\?.*','', headersx[0].split(" ")[1])+"], STATUS["+self._handle_response_(_resp[0], 0, {}).split(" ")[1]+"]")
             else:
                 self._callbacks.printOutput(self._handle_response_(_resp[0], 0, {}).split(" ")[1])
-
 
         elif case == "TOHMAC":
             self.empty_hdr(Modheaders)
@@ -141,7 +144,12 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
                         JWT_P = json.loads(base64.b64decode(hdr.split(" ")[2].split(".")[1]+"==="))
                         for alg in self.EncryptionAlg:
                             if JWT_H["alg"] == alg:
-                                njwt_hdr = eval("self."+self.EncryptionAlg[alg]+"({}, {}, '{}')".format(JWT_H, JWT_P, JWT_H["jwk"]))
+                                if alg == "RS256":
+                                    njwt_hdr = self.HMAC256(JWT_H, JWT_P, JWT_H["jwk"])
+                                elif alg == "RS215":
+                                    njwt_hdr = self.HMAC512(JWT_H, JWT_P, JWT_H["jwk"])
+                                elif algo == "RS384":
+                                    njwt_hdr = self.HMAC384(JWT_H, JWT_P, JWT_H["jwk"])
                                 njwt_hdr = hdr.split(" ")[0]+" "+hdr.split(" ")[1]+" "+njwt_hdr
                                 Modheaders.append(njwt_hdr)
                                 break
@@ -168,7 +176,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
                         for alg in self.EncryptionAlg:
                             if JWT_H["alg"] == alg:
                                 del JWT_H["alg"]
-                                njwt_hdr = eval("self."+self.EncryptionAlg[alg]+"({}, {}, '{}')".format(JWT_H, JWT_P, secret))
+                                njwt_hdr = self.RSA_algo(JWT_P, alg, JWT_H)
                                 njwt_hdr = hdr.split(" ")[0]+" "+hdr.split(" ")[1]+" "+njwt_hdr
                                 Modheaders.append(njwt_hdr)
                                 break
@@ -196,7 +204,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
                         for alg in self.EncryptionAlg:
                             if JWT_H["alg"] == alg:
                                 del JWT_H["alg"]
-                                njwt_hdr = eval("self."+self.EncryptionAlg[alg]+"({}, {}, '{}')".format(JWT_H, JWT_P, "s3cr3t"))
+                                njwt_hdr = self.RSA_algo(JWT_P, alg, JWT_H)
                                 njwt_hdr = hdr.split(" ")[0]+" "+hdr.split(" ")[1]+" "+njwt_hdr
                                 Modheaders.append(njwt_hdr)
                                 break
@@ -222,7 +230,8 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
                         for alg in self.EncryptionAlg:
                             if JWT_H["alg"] == alg:
                                 del JWT_H["alg"]
-                                njwt_hdr = self.RSA_Algorithms(JWT_P, alg, JWT_H)
+                                njwt_hdr = self.RSA_algo(JWT_P, alg, JWT_H)
+                                self._callbacks.printOutput(njwt_hdr)
                                 njwt_hdr = hdr.split(" ")[0]+" "+hdr.split(" ")[1]+" "+njwt_hdr
                                 Modheaders.append(njwt_hdr)
                                 break
@@ -328,7 +337,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IHttpRequestResponse):
 
     def processHttpMessage(self, toolFlag, messageIsRequest, currentMessage):
 
-        if toolFlag == self._callbacks.TOOL_PROXY:
+        if toolFlag == self._callbacks.TOOL_REPEATER:
             try:
                 if messageIsRequest:
                     self.processRequest(currentMessage)
